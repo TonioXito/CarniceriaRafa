@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lito Barber Studio - Control de Citas & Clientes</title>
+
+    <!-- CONFIGURACIÓN PWA PARA APLICACIÓN MÓVIL -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Soporte para iOS / iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lito Barber">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --whatsapp: #25d366;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        .header-container { text-align: center; margin-bottom: 25px; }
+        .logo-box { width: 100%; max-width: 260px; margin: 0 auto 10px auto; display: flex; justify-content: center; align-items: center; }
+        .header-container p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+
+        .card { background: var(--card); padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); margin-bottom: 20px; border: 1px solid var(--border); }
+        h2 { margin-top: 0; font-size: 1.1rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .form-group { margin-bottom: 12px; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted); }
+        
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); background: #0f172a; color: white; border-radius: 8px; box-sizing: border-box; font-size: 0.95rem; }
+        input:focus, select:focus { border-color: var(--accent); outline: none; }
+        
+        /* ESTILO CON FONDO OSCURO ORIGINAL E ICONOS VISIBLES EN BLANCO */
+        .input-destacado {
+            background-color: #0f172a !important;
+            color: #ffffff !important;
+            font-weight: bold;
+            font-size: 1.05rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            color-scheme: dark;
+        }
+        .input-destacado::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        .input-destacado:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { padding: 12px 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-primary { background: var(--accent); flex: 1; }
+        .btn-walkin { background: #0d9488; flex: 1; }
+        .btn-ws { background: #15803d; color: white; border: none; font-size: 0.75rem; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-export { background: #0284c7; color: white; font-size: 0.75rem; padding: 6px 10px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+        
+        .btn-agenda-header { background: #3b82f6; color: white; font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .btn-agenda-header:hover { background: #2563eb; }
+
+        /* BOTONES SELECCIONABLES EN EL FORMULARIO */
+        .form-pago-selector, .form-frecuencia-selector { display: flex; gap: 4px; background: #0f172a; padding: 4px; border-radius: 8px; border: 1px solid var(--border); min-height: 46px; box-sizing: border-box; }
+        .btn-form-pago, .btn-form-frecuencia { flex: 1; font-size: 0.75rem; padding: 8px 2px; border: none; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; font-weight: bold; text-align: center; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        
+        .btn-form-pago.active-pendiente { background: #7f1d1d; color: #fca5a5; }
+        .btn-form-pago.active-abono { background: #713f12; color: #fde047; }
+        .btn-form-pago.active-pagado { background: #14532d; color: #86efac; }
+
+        .btn-form-frecuencia.active { background: var(--accent); color: white; }
+
+        /* CALENDARIO & VISTAS */
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .cal-header button { background: var(--border); padding: 6px 14px; }
+        .cal-toggle-group { display: flex; background: #0f172a; border-radius: 8px; padding: 2px; border: 1px solid var(--border); }
+        .cal-toggle-btn { background: transparent; color: var(--text-muted); padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; }
+        .cal-toggle-btn.active { background: var(--accent); color: white; }
+
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .cal-day-name { font-weight: bold; font-size: 0.8rem; color: var(--text-muted); padding: 4px 0; }
+        .cal-day { background: #0f172a; padding: 10px 0; border-radius: 6px; font-size: 0.85rem; position: relative; cursor: pointer; border: 1px solid transparent; }
+        .cal-day:hover { border-color: var(--accent); }
+        .cal-day.today { border: 2px solid var(--accent); font-weight: bold; color: var(--accent); }
+        .cal-day.selected { background: var(--accent); color: white; }
+        .dot-container { display: flex; justify-content: center; gap: 3px; margin-top: 4px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .dot-agendado { background: #3b82f6; }
+        .dot-atendido { background: var(--success); }
+
+        /* LISTA Y TARJETAS */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: center; }
+        .stat-box { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .stat-box span { display: block; font-size: 1.3rem; font-weight: bold; color: var(--text); }
+        .stat-box label { font-size: 0.75rem; color: var(--text-muted); }
+        
+        .item-card { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .tag-group { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+        .tag { font-size: 0.7rem; padding: 4px 8px; border-radius: 12px; font-weight: bold; border: none; }
+        
+        .tag-agendado { background: #1e3a8a; color: #93c5fd; }
+        .tag-walkin { background: #134e4a; color: #99f6e4; }
+        
+        .btn-atendido { background: #14532d; color: #86efac; cursor: pointer; }
+        .btn-por-atender { background: #7f1d1d; color: #fca5a5; cursor: pointer; }
+        
+        .badge-pagado { background: #14532d; color: #86efac; cursor: pointer; }
+        .badge-abono { background: #713f12; color: #fde047; cursor: pointer; }
+        .badge-pendiente { background: #7f1d1d; color: #fca5a5; cursor: pointer; }
+        
+        .btn-filter-reset { background: var(--border); color: var(--text); font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; }
+        
+        /* DIRECTORIO DE CLIENTES */
+        .cliente-item { padding: 12px; background: #0f172a; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+        .cliente-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .cliente-info-extra { display: flex; gap: 10px; align-items: center; margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap; }
+        .tag-alerta-seguimiento { background: #7f1d1d; color: #fca5a5; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
+        .tag-ok-seguimiento { background: #14532d; color: #86efac; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
+
+        /* MODAL DE AGENDA RÁPIDA */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:999; padding: 15px; box-sizing: border-box; }
+        .modal-card { background: var(--card); border: 1px solid var(--border); width: 100%; max-width: 480px; border-radius: 12px; padding: 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 85vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .modal-header h3 { margin:0; font-size: 1.1rem; }
+        .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; padding: 0; }
+        .modal-close:hover { color: white; }
+        .modal-body { overflow-y: auto; flex: 1; margin-top: 10px; }
+        .modal-cliente-item { padding: 10px 12px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .modal-cliente-item:hover { border-color: var(--accent); background: #1e293b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- LOGO Y TITULO -->
+    <div class="header-container">
+        <div class="logo-box">
+            <svg viewBox="0 0 300 120" style="width:100%; height:auto; background:black; border-radius:8px; padding:10px;">
+                <text x="15" y="80" font-family="'Brush Script MT', cursive, sans-serif" font-size="75" font-weight="bold" fill="white" font-style="italic">lito</text>
+                <text x="175" y="52" font-family="'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="bold" fill="white" letter-spacing="2">BARBER</text>
+                <text x="175" y="78" font-family="'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="bold" fill="white" letter-spacing="2">STUDIO</text>
+            </svg>
+        </div>
+        <p>Gestión de Citas y Clientes</p>
+    </div>
+
+    <!-- FORMULARIO DE REGISTRO DE CITA -->
+    <div class="card">
+        <h2>
+            <span>Agendar o Registrar Cita</span>
+            <button type="button" class="btn-agenda-header" onclick="abrirModalAgenda()">📖 Agenda</button>
+        </h2>
+        
+        <div class="form-group">
+            <label>Nombre del Cliente</label>
+            <input type="text" id="nombre" list="clientesGuardados" placeholder="Escribe o selecciona un cliente..." oninput="autocompletarDatosCliente()">
+            <datalist id="clientesGuardados"></datalist>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Teléfono (opcional)</label>
+                <input type="tel" id="telefono" placeholder="Ej. +584121234567">
+            </div>
+            <div class="form-group">
+                <label>Frecuencia de Visita</label>
+                <div class="form-frecuencia-selector">
+                    <button type="button" class="btn-form-frecuencia" id="btnFreq7" onclick="seleccionarFrecuenciaFormulario(7)">Semanal</button>
+                    <button type="button" class="btn-form-frecuencia active" id="btnFreq14" onclick="seleccionarFrecuenciaFormulario(14)">2 Sem.</button>
+                    <button type="button" class="btn-form-frecuencia" id="btnFreq21" onclick="seleccionarFrecuenciaFormulario(21)">3 Sem.</button>
+                    <button type="button" class="btn-form-frecuencia" id="btnFreq30" onclick="seleccionarFrecuenciaFormulario(30)">Mensual</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Fecha Seleccionada</label>
+                <input type="date" id="fechaSeleccionada" class="input-destacado">
+            </div>
+            <div class="form-group">
+                <label>Hora Seleccionada</label>
+                <input type="time" id="horaSeleccionada" class="input-destacado">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Precio Corte ($)</label>
+                <input type="number" id="monto" placeholder="Ej. 15" oninput="calcularRestanteFormulario()">
+            </div>
+            <div class="form-group">
+                <label>Estado de Pago</label>
+                <div class="form-pago-selector">
+                    <button type="button" class="btn-form-pago active-pendiente" id="btnEstadoPendiente" onclick="seleccionarEstadoPagoFormulario('Pendiente')">❌ Sin Pago</button>
+                    <button type="button" class="btn-form-pago" id="btnEstadoAbono" onclick="seleccionarEstadoPagoFormulario('Abono')">🟡 Abono</button>
+                    <button type="button" class="btn-form-pago" id="btnEstadoPagado" onclick="seleccionarEstadoPagoFormulario('Pagado')">🟢 100%</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" id="groupAbono" style="display: none;">
+            <label>Monto Abonado ($)</label>
+            <input type="number" id="montoAbonado" placeholder="Ej. 5" oninput="calcularRestanteFormulario()">
+            <small id="lblRestante" style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 4px;"></small>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-primary" onclick="registrarCita('Agendado')">📅 Agendar Cita</button>
+            <button class="btn-walkin" onclick="registrarCita('Sin Agenda')">⚡ Llegó Sin Cita</button>
+        </div>
+    </div>
+
+    <!-- CALENDARIO CON SELECTOR DE VISTA -->
+    <div class="card">
+        <div class="cal-header">
+            <button onclick="navegarCalendario(-1)">◀</button>
+            <strong id="calTitulo">Semana Actual</strong>
+            <button onclick="navegarCalendario(1)">▶</button>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <div class="cal-toggle-group">
+                <button class="cal-toggle-btn active" id="btnVistaSemana" onclick="cambiarModoVista('semana')">Semanal</button>
+                <button class="cal-toggle-btn" id="btnVistaMes" onclick="cambiarModoVista('mes')">Mensual</button>
+            </div>
+        </div>
+
+        <div class="cal-grid" id="diasSemana">
+            <div class="cal-day-name">Dom</div>
+            <div class="cal-day-name">Lun</div>
+            <div class="cal-day-name">Mar</div>
+            <div class="cal-day-name">Mié</div>
+            <div class="cal-day-name">Jue</div>
+            <div class="cal-day-name">Vie</div>
+            <div class="cal-day-name">Sáb</div>
+        </div>
+        <div class="cal-grid" id="calDias"></div>
+    </div>
+
+    <!-- LISTADO DE ATENCIONES -->
+    <div class="card">
+        <h2>
+            <span id="tituloLista">Todas las Atenciones</span>
+            <button class="btn-filter-reset" id="btnResetFiltro" onclick="limpiarFiltroFecha()" style="display:none;">Ver Todo</button>
+        </h2>
+        <div id="listaAtenciones"></div>
+    </div>
+
+    <!-- RESUMEN GENERAL -->
+    <div class="card">
+        <h2>
+            <span>Resumen General</span>
+            <button class="btn-ws" onclick="exportarResumenWhatsApp()">📤 Exportar Reporte</button>
+        </h2>
+        <div class="stats-grid">
+            <div class="stat-box"><span id="totalAgendados">0</span><label>Agendados</label></div>
+            <div class="stat-box"><span id="totalAtendidos">0</span><label>Atendidos</label></div>
+            <div class="stat-box"><span id="totalSinAgenda">0</span><label>Sin Agenda</label></div>
+            <div class="stat-box"><span id="totalRecaudado">$0.00</span><label>Total Recaudado</label></div>
+        </div>
+    </div>
+
+    <!-- DIRECTORIO DE CLIENTES & SEGUIMIENTO -->
+    <div class="card">
+        <h2>
+            <span>👥 Base de Datos & Seguimiento</span>
+            <button class="btn-export" onclick="exportarClientesCSV()">📥 Exportar Clientes (CSV)</button>
+        </h2>
+        <div id="listaClientesDirectorio"></div>
+    </div>
+</div>
+
+<!-- MODAL BÚSQUEDA RÁPIDA DE AGENDA -->
+<div class="modal-overlay" id="modalAgenda">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>📖 Agenda de Clientes</h3>
+            <button class="modal-close" onclick="cerrarModalAgenda()">✕</button>
+        </div>
+        <input type="text" id="buscarClienteModal" placeholder="🔍 Buscar por nombre o teléfono..." oninput="filtrarClientesModal()">
+        <div class="modal-body" id="listaClientesModal"></div>
+    </div>
+</div>
+
+<script>
+    let registros = JSON.parse(localStorage.getItem('barberia_registros_v4')) || [];
+    let clientesBD = JSON.parse(localStorage.getItem('barberia_clientes_v4')) || [];
+    
+    let fechaCalendario = new Date();
+    let modoVista = 'semana';
+    let fechaFiltroSeleccionada = null;
+    let estadoPagoSeleccionadoForm = 'Pendiente';
+    let frecuenciaSeleccionadaForm = 14;
+
+    function inicializarFechaHora() {
+        const ahora = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        
+        document.getElementById('fechaSeleccionada').value = `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}`;
+        document.getElementById('horaSeleccionada').value = `${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+    }
+
+    function guardar() {
+        localStorage.setItem('barberia_registros_v4', JSON.stringify(registros));
+        localStorage.setItem('barberia_clientes_v4', JSON.stringify(clientesBD));
+        render();
+    }
+
+    /* MODAL AGENDA */
+    function abrirModalAgenda() {
+        document.getElementById('modalAgenda').style.display = 'flex';
+        document.getElementById('buscarClienteModal').value = '';
+        filtrarClientesModal();
+    }
+
+    function cerrarModalAgenda() {
+        document.getElementById('modalAgenda').style.display = 'none';
+    }
+
+    function filtrarClientesModal() {
+        const query = document.getElementById('buscarClienteModal').value.toLowerCase().trim();
+        const contenedor = document.getElementById('listaClientesModal');
+        contenedor.innerHTML = '';
+
+        const filtrados = clientesBD.filter(c => c && c.nombre && (
+            c.nombre.toLowerCase().includes(query) || (c.telefono && c.telefono.includes(query))
+        ));
+
+        if (filtrados.length === 0) {
+            contenedor.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">No se encontraron clientes.</p>';
+            return;
+        }
+
+        filtrados.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+        filtrados.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'modal-cliente-item';
+            item.innerHTML = `
+                <div>
+                    <strong>${c.nombre}</strong><br>
+                    <small style="color: var(--text-muted);">${c.telefono || 'Sin teléfono'} — Cada ${c.frecuenciaDias || 14} días</small>
+                </div>
+                <span style="color: var(--accent); font-weight: bold; font-size: 0.8rem;">Seleccionar ➔</span>
+            `;
+            item.onclick = () => seleccionarClienteDesdeModal(c);
+            contenedor.appendChild(item);
+        });
+    }
+
+    function seleccionarClienteDesdeModal(cliente) {
+        document.getElementById('nombre').value = cliente.nombre;
+        document.getElementById('telefono').value = cliente.telefono || '';
+        seleccionarFrecuenciaFormulario(cliente.frecuenciaDias || 14);
+        cerrarModalAgenda();
+    }
+
+    function cambiarModoVista(modo) {
+        modoVista = modo;
+        document.getElementById('btnVistaSemana').classList.toggle('active', modo === 'semana');
+        document.getElementById('btnVistaMes').classList.toggle('active', modo === 'mes');
+        renderCalendario();
+    }
+
+    function navegarCalendario(delta) {
+        if (modoVista === 'semana') {
+            fechaCalendario.setDate(fechaCalendario.getDate() + (delta * 7));
+        } else {
+            fechaCalendario.setMonth(fechaCalendario.getMonth() + delta);
+        }
+        renderCalendario();
+    }
+
+    function seleccionarFrecuenciaFormulario(dias) {
+        frecuenciaSeleccionadaForm = parseInt(dias);
+        [7, 14, 21, 30].forEach(d => {
+            const btn = document.getElementById(`btnFreq${d}`);
+            if (btn) {
+                btn.classList.toggle('active', d === frecuenciaSeleccionadaForm);
+            }
+        });
+    }
+
+    function seleccionarEstadoPagoFormulario(nuevoEstado) {
+        estadoPagoSeleccionadoForm = nuevoEstado;
+
+        const btnPend = document.getElementById('btnEstadoPendiente');
+        const btnAbo = document.getElementById('btnEstadoAbono');
+        const btnPag = document.getElementById('btnEstadoPagado');
+        const groupAbono = document.getElementById('groupAbono');
+        const inputMonto = parseFloat(document.getElementById('monto').value) || 0;
+        const inputAbono = document.getElementById('montoAbonado');
+
+        btnPend.className = 'btn-form-pago';
+        btnAbo.className = 'btn-form-pago';
+        btnPag.className = 'btn-form-pago';
+
+        if (nuevoEstado === 'Pendiente') {
+            btnPend.classList.add('active-pendiente');
+            groupAbono.style.display = 'none';
+            inputAbono.value = 0;
+        } else if (nuevoEstado === 'Abono') {
+            btnAbo.classList.add('active-abono');
+            groupAbono.style.display = 'block';
+        } else if (nuevoEstado === 'Pagado') {
+            btnPag.classList.add('active-pagado');
+            groupAbono.style.display = 'none';
+            inputAbono.value = inputMonto;
+        }
+
+        calcularRestanteFormulario();
+    }
+
+    function calcularRestanteFormulario() {
+        const montoTotal = parseFloat(document.getElementById('monto').value) || 0;
+        let abono = parseFloat(document.getElementById('montoAbonado').value) || 0;
+
+        if (estadoPagoSeleccionadoForm === 'Pagado') abono = montoTotal;
+
+        const resta = Math.max(0, montoTotal - abono);
+        document.getElementById('lblRestante').innerText = estadoPagoSeleccionadoForm === 'Abono' ? `Falta por pagar: $${resta.toFixed(2)}` : '';
+    }
+
+    function autocompletarDatosCliente() {
+        const nombreInput = document.getElementById('nombre').value.trim().toLowerCase();
+        const clienteEncontrado = clientesBD.find(c => c && c.nombre && c.nombre.toLowerCase() === nombreInput);
+        if (clienteEncontrado) {
+            if (clienteEncontrado.telefono) document.getElementById('telefono').value = clienteEncontrado.telefono;
+            if (clienteEncontrado.frecuenciaDias) seleccionarFrecuenciaFormulario(clienteEncontrado.frecuenciaDias);
+        }
+    }
+
+    function registrarCita(tipo) {
+        const nombre = document.getElementById('nombre').value.trim();
+        const telefono = document.getElementById('telefono').value.trim();
+        const frecuenciaDias = frecuenciaSeleccionadaForm || 14;
+        
+        const fechaVal = document.getElementById('fechaSeleccionada').value;
+        const horaVal = document.getElementById('horaSeleccionada').value;
+        const monto = parseFloat(document.getElementById('monto').value) || 0;
+        
+        let abono = parseFloat(document.getElementById('montoAbonado').value) || 0;
+        if (estadoPagoSeleccionadoForm === 'Pagado') abono = monto;
+        if (estadoPagoSeleccionadoForm === 'Pendiente') abono = 0;
+
+        if (!nombre) {
+            alert('Por favor, ingresa el nombre del cliente.');
+            return;
+        }
+
+        const idxCliente = clientesBD.findIndex(c => c && c.nombre && c.nombre.toLowerCase() === nombre.toLowerCase());
+        if (idxCliente >= 0) {
+            if (telefono) clientesBD[idxCliente].telefono = telefono;
+            clientesBD[idxCliente].frecuenciaDias = frecuenciaDias;
+        } else {
+            clientesBD.push({ id: Date.now(), nombre: nombre, telefono: telefono, frecuenciaDias: frecuenciaDias });
+        }
+
+        let fechaCita = new Date();
+        if (tipo !== 'Sin Agenda' && fechaVal && horaVal) {
+            fechaCita = new Date(`${fechaVal}T${horaVal}`);
+        }
+
+        const nuevoRegistro = {
+            id: Date.now(),
+            nombre: nombre,
+            telefono: telefono,
+            fechaISO: fechaCita.toISOString(),
+            tipo: tipo,
+            monto: monto,
+            abono: abono,
+            estadoPago: estadoPagoSeleccionadoForm,
+            atendido: tipo === 'Sin Agenda'
+        };
+
+        registros.unshift(nuevoRegistro);
+        guardar();
+
+        document.getElementById('nombre').value = '';
+        document.getElementById('telefono').value = '';
+        document.getElementById('monto').value = '';
+        document.getElementById('montoAbonado').value = '';
+        inicializarFechaHora();
+        seleccionarEstadoPagoFormulario('Pendiente');
+        seleccionarFrecuenciaFormulario(14);
+    }
+
+    function cambiarEstadoPagoModal(id) {
+        const r = registros.find(item => item.id === id);
+        if (!r) return;
+
+        if (r.estadoPago === 'Pendiente') {
+            let res = prompt(`Indica el monto del ABONO o escribe el precio total para completar ($${r.monto}):`, (r.monto / 2).toString());
+            if (res !== null) {
+                let val = parseFloat(res);
+                if (val >= r.monto) {
+                    r.estadoPago = 'Pagado';
+                    r.abono = r.monto;
+                } else if (val > 0) {
+                    r.estadoPago = 'Abono';
+                    r.abono = val;
+                }
+            }
+        } else if (r.estadoPago === 'Abono') {
+            if (confirm(`El cliente ya abonó $${r.abono}. Restan $${(r.monto - r.abono).toFixed(2)}.\n\n¿Marcar como PAGO COMPLETO (100%)?`)) {
+                r.estadoPago = 'Pagado';
+                r.abono = r.monto;
+            }
+        } else {
+            if (confirm(`¿Revertir estado de pago a SIN PAGO (Pendiente)?`)) {
+                r.estadoPago = 'Pendiente';
+                r.abono = 0;
+            }
+        }
+        guardar();
+    }
+
+    function toggleEstadoAtendido(id) {
+        registros = registros.map(r => r.id === id ? { ...r, atendido: !r.atendido } : r);
+        guardar();
+    }
+
+    function eliminar(id) {
+        if(confirm('¿Deseas eliminar este registro?')) {
+            registros = registros.filter(r => r.id !== id);
+            guardar();
+        }
+    }
+
+    function eliminarCliente(id) {
+        if(confirm('¿Deseas eliminar este cliente de la base de datos?')) {
+            clientesBD = clientesBD.filter(c => c && c.id !== id);
+            guardar();
+        }
+    }
+
+    function enviarSeguimientoWhatsApp(nombreCliente, telefonoCliente, diasSinVenir) {
+        let texto = `¡Hola ${nombreCliente}! 👋✂️\n\n`;
+        texto += `Te saludamos de *LITO BARBER STUDIO*. Notamos que han pasado *${diasSinVenir} días* desde tu último corte con nosotros.\n\n`;
+        texto += `¿Te gustaría agendar tu cita para estos días y mantener tu estilo al día? 💈🔥\n\n`;
+        texto += `¡Escríbenos y te apartamos tu turno!`;
+
+        let telLimpio = telefonoCliente ? telefonoCliente.replace(/[^0-9]/g, '') : '';
+        let url = telLimpio ? `https://wa.me/${telLimpio}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`;
+        
+        window.open(url, '_blank');
+    }
+
+    function exportarClientesCSV() {
+        if (clientesBD.length === 0) {
+            alert("No hay datos de clientes para exportar.");
+            return;
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "ID,Nombre,Telefono,Frecuencia_Habitual_Dias,Ultima_Visita,Dias_Sin_Venir\n";
+
+        clientesBD.forEach(c => {
+            const ultReg = registros.filter(r => r && r.nombre && r.nombre.toLowerCase() === c.nombre.toLowerCase() && r.atendido)
+                                    .sort((a,b) => new Date(b.fechaISO) - new Date(a.fechaISO))[0];
+            
+            let ultimaFecha = ultReg ? new Date(ultReg.fechaISO).toLocaleDateString() : 'Sin registros atendidos';
+            let diasSinVenir = ultReg ? Math.floor((new Date() - new Date(ultReg.fechaISO)) / (1000 * 60 * 60 * 24)) : 'N/A';
+
+            let linea = `"${c.id}","${c.nombre}","${c.telefono || ''}","${c.frecuenciaDias || 14}","${ultimaFecha}","${diasSinVenir}"`;
+            csvContent += linea + "\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Clientes_LitoBarberStudio_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function enviarReciboWhatsApp(id) {
+        const r = registros.find(item => item.id === id);
+        if (!r) return;
+
+        const fechaObj = new Date(r.fechaISO);
+        const fechaFormateada = `${fechaObj.toLocaleDateString()} ${fechaObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        
+        let detallePago = '';
+        if (r.estadoPago === 'Pagado') {
+            detallePago = `✅ *PAGO COMPLETO (100%)*`;
+        } else if (r.estadoPago === 'Abono') {
+            detallePago = `🟡 *ABONADO:* $${r.abono.toFixed(2)}\n📌 *RESTA POR PAGAR:* $${(r.monto - r.abono).toFixed(2)}`;
+        } else {
+            detallePago = `❌ *PENDIENTE DE PAGO*`;
+        }
+
+        let texto = `*LITO BARBER STUDIO* ✂️\n`;
+        texto += `--------------------------------\n`;
+        texto += `📄 *RECIBO DE SERVICIO*\n\n`;
+        texto += `👤 *Cliente:* ${r.nombre}\n`;
+        texto += `📅 *Fecha:* ${fechaFormateada}\n`;
+        texto += `💰 *Precio Servicio:* $${r.monto.toFixed(2)}\n`;
+        texto += `${detallePago}\n`;
+        texto += `--------------------------------\n`;
+        texto += `¡Gracias por tu preferencia! 🙌`;
+
+        let telLimpio = r.telefono ? r.telefono.replace(/[^0-9]/g, '') : '';
+        let url = telLimpio ? `https://wa.me/${telLimpio}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`;
+        
+        window.open(url, '_blank');
+    }
+
+    function exportarResumenWhatsApp() {
+        let registrosFiltrados = fechaFiltroSeleccionada 
+            ? registros.filter(r => r && r.fechaISO && new Date(r.fechaISO).toISOString().split('T')[0] === fechaFiltroSeleccionada)
+            : registros;
+
+        let totalRecaudado = 0;
+        let atendidos = 0;
+
+        registrosFiltrados.forEach(r => {
+            if (r.atendido) atendidos++;
+            totalRecaudado += (r.abono || 0);
+        });
+
+        let titulo = fechaFiltroSeleccionada ? `REPORTE DEL DÍA (${fechaFiltroSeleccionada})` : `REPORTE GENERAL DE CITAS`;
+
+        let texto = `📊 *LITO BARBER STUDIO* 📊\n`;
+        texto += `*${titulo}*\n`;
+        texto += `--------------------------------\n`;
+        texto += `✂️ *Atenciones Atendidas:* ${atendidos}\n`;
+        texto += `💵 *Dinero Recaudado (Abonos + Pagos):* $${totalRecaudado.toFixed(2)}\n`;
+        texto += `👥 *Clientes en Base de Datos:* ${clientesBD.length}\n`;
+        texto += `--------------------------------\n`;
+        texto += `Generado el ${new Date().toLocaleDateString()}`;
+
+        let url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+        window.open(url, '_blank');
+    }
+
+    function seleccionarFechaFiltro(isoFecha) {
+        fechaFiltroSeleccionada = isoFecha;
+        document.getElementById('fechaSeleccionada').value = isoFecha;
+        render();
+    }
+
+    function limpiarFiltroFecha() {
+        fechaFiltroSeleccionada = null;
+        render();
+    }
+
+    function renderCalendario() {
+        const calTituloElem = document.getElementById('calTitulo');
+        const calDiasElem = document.getElementById('calDias');
+        if (!calTituloElem || !calDiasElem) return;
+
+        calDiasElem.innerHTML = '';
+        const hoyStr = new Date().toDateString();
+
+        if (modoVista === 'semana') {
+            const inicioSemana = new Date(fechaCalendario);
+            inicioSemana.setDate(fechaCalendario.getDate() - fechaCalendario.getDay());
+
+            const finSemana = new Date(inicioSemana);
+            finSemana.setDate(inicioSemana.getDate() + 6);
+
+            const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            calTituloElem.innerText = `${inicioSemana.getDate()} ${nombresMeses[inicioSemana.getMonth()]} - ${finSemana.getDate()} ${nombresMeses[finSemana.getMonth()]}`;
+
+            for (let i = 0; i < 7; i++) {
+                const diaActual = new Date(inicioSemana);
+                diaActual.setDate(inicioSemana.getDate() + i);
+                const fechaStrISO = diaActual.toISOString().split('T')[0];
+
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'cal-day';
+                if (diaActual.toDateString() === hoyStr) dayDiv.classList.add('today');
+                if (fechaFiltroSeleccionada === fechaStrISO) dayDiv.classList.add('selected');
+
+                dayDiv.innerText = diaActual.getDate();
+                dayDiv.onclick = () => seleccionarFechaFiltro(fechaStrISO);
+
+                const registrosDia = registros.filter(r => r && r.fechaISO && new Date(r.fechaISO).toISOString().split('T')[0] === fechaStrISO);
+                if (registrosDia.length > 0) {
+                    const dotContainer = document.createElement('div');
+                    dotContainer.className = 'dot-container';
+                    if (registrosDia.some(r => r.tipo === 'Agendado' && !r.atendido)) {
+                        const dotA = document.createElement('span');
+                        dotA.className = 'dot dot-agendado';
+                        dotContainer.appendChild(dotA);
+                    }
+                    if (registrosDia.some(r => r.atendido)) {
+                        const dotOk = document.createElement('span');
+                        dotOk.className = 'dot dot-atendido';
+                        dotContainer.appendChild(dotOk);
+                    }
+                    dayDiv.appendChild(dotContainer);
+                }
+
+                calDiasElem.appendChild(dayDiv);
+            }
+
+        } else {
+            const año = fechaCalendario.getFullYear();
+            const mes = fechaCalendario.getMonth();
+            const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            
+            calTituloElem.innerText = `${nombresMeses[mes]} ${año}`;
+
+            const primerDiaIndex = new Date(año, mes, 1).getDay();
+            const ultimoDiaFecha = new Date(año, mes + 1, 0).getDate();
+
+            for (let i = 0; i < primerDiaIndex; i++) {
+                const emptyDiv = document.createElement('div');
+                calDiasElem.appendChild(emptyDiv);
+            }
+
+            for (let d = 1; d <= ultimoDiaFecha; d++) {
+                const fechaActual = new Date(año, mes, d);
+                const fechaStrISO = fechaActual.toISOString().split('T')[0];
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'cal-day';
+                if (fechaActual.toDateString() === hoyStr) dayDiv.classList.add('today');
+                if (fechaFiltroSeleccionada === fechaStrISO) dayDiv.classList.add('selected');
+
+                dayDiv.innerText = d;
+                dayDiv.onclick = () => seleccionarFechaFiltro(fechaStrISO);
+
+                const registrosDia = registros.filter(r => r && r.fechaISO && new Date(r.fechaISO).toISOString().split('T')[0] === fechaStrISO);
+                if (registrosDia.length > 0) {
+                    const dotContainer = document.createElement('div');
+                    dotContainer.className = 'dot-container';
+                    if (registrosDia.some(r => r.tipo === 'Agendado' && !r.atendido)) {
+                        const dotA = document.createElement('span');
+                        dotA.className = 'dot dot-agendado';
+                        dotContainer.appendChild(dotA);
+                    }
+                    if (registrosDia.some(r => r.atendido)) {
+                        const dotOk = document.createElement('span');
+                        dotOk.className = 'dot dot-atendido';
+                        dotContainer.appendChild(dotOk);
+                    }
+                    dayDiv.appendChild(dotContainer);
+                }
+
+                calDiasElem.appendChild(dayDiv);
+            }
+        }
+    }
+
+    function renderDirectorio() {
+        const datalist = document.getElementById('clientesGuardados');
+        const listaDir = document.getElementById('listaClientesDirectorio');
+        if (!datalist || !listaDir) return;
+
+        datalist.innerHTML = '';
+        listaDir.innerHTML = '';
+
+        clientesBD = clientesBD.filter(c => c && typeof c === 'object');
+
+        if (clientesBD.length === 0) {
+            listaDir.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">No hay clientes guardados aún.</p>';
+            return;
+        }
+
+        clientesBD.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+        const ahora = new Date();
+
+        clientesBD.forEach(c => {
+            if (!c.nombre) return;
+
+            const option = document.createElement('option');
+            option.value = c.nombre;
+            datalist.appendChild(option);
+
+            const registrosClienteAtendido = registros.filter(r => r && r.nombre && r.nombre.toLowerCase() === c.nombre.toLowerCase() && r.atendido)
+                                                      .sort((a, b) => new Date(b.fechaISO) - new Date(a.fechaISO));
+            
+            let textoUltimaVisita = 'Sin atenciones registradas';
+            let diasSinVenir = null;
+            let requiereSeguimiento = false;
+            let freqDias = c.frecuenciaDias || 14;
+
+            if (registrosClienteAtendido.length > 0) {
+                const ultFechaObj = new Date(registrosClienteAtendido[0].fechaISO);
+                textoUltimaVisita = ultFechaObj.toLocaleDateString();
+                
+                const diffTime = Math.abs(ahora - ultFechaObj);
+                diasSinVenir = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diasSinVenir >= freqDias) {
+                    requiereSeguimiento = true;
+                }
+            }
+
+            const item = document.createElement('div');
+            item.className = 'cliente-item';
+            
+            let htmlStatusSeguimiento = '';
+            if (diasSinVenir !== null) {
+                if (requiereSeguimiento) {
+                    htmlStatusSeguimiento = `<span class="tag-alerta-seguimiento">⚠️ ¡Toca seguimiento! (${diasSinVenir} días sin venir)</span>`;
+                } else {
+                    htmlStatusSeguimiento = `<span class="tag-ok-seguimiento">✓ Al día (${diasSinVenir} días)</span>`;
+                }
+            }
+
+            item.innerHTML = `
+                <div class="cliente-header">
+                    <div>
+                        <strong>${c.nombre}</strong> ${c.telefono ? `<small style="color:var(--text-muted);">(${c.telefono})</small>` : ''}<br>
+                        <small style="color: var(--text-muted);">Frecuencia habitual: Cada ${freqDias} días | Última visita: ${textoUltimaVisita}</small>
+                    </div>
+                    <button onclick="eliminarCliente(${c.id})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.85rem;">✕</button>
+                </div>
+                
+                <div class="cliente-info-extra">
+                    ${htmlStatusSeguimiento}
+                    ${requiereSeguimiento ? `
+                        <button class="btn-ws" onclick="enviarSeguimientoWhatsApp('${c.nombre}', '${c.telefono || ''}', ${diasSinVenir})">
+                            📱 Recordar por WhatsApp
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            listaDir.appendChild(item);
+        });
+    }
+
+    function render() {
+        renderCalendario();
+        renderDirectorio();
+
+        const lista = document.getElementById('listaAtenciones');
+        const btnReset = document.getElementById('btnResetFiltro');
+        const tituloLista = document.getElementById('tituloLista');
+        if (!lista) return;
+
+        lista.innerHTML = '';
+
+        let registrosMostrados = registros;
+        if (fechaFiltroSeleccionada) {
+            registrosMostrados = registros.filter(r => r && r.fechaISO && new Date(r.fechaISO).toISOString().split('T')[0] === fechaFiltroSeleccionada);
+            btnReset.style.display = 'inline-block';
+            tituloLista.innerText = `Citas de: ${fechaFiltroSeleccionada}`;
+        } else {
+            btnReset.style.display = 'none';
+            tituloLista.innerText = 'Todas las Atenciones';
+        }
+
+        let agendados = 0, sinAgenda = 0, atendidos = 0, totalRecaudado = 0;
+        registrosMostrados.forEach(r => {
+            if (!r) return;
+            if (r.tipo === 'Agendado') agendados++;
+            else sinAgenda++;
+            if (r.atendido) atendidos++;
+            totalRecaudado += (r.abono || 0);
+        });
+
+        document.getElementById('totalAgendados').innerText = agendados;
+        document.getElementById('totalSinAgenda').innerText = sinAgenda;
+        document.getElementById('totalAtendidos').innerText = atendidos;
+        document.getElementById('totalRecaudado').innerText = `$${totalRecaudado.toFixed(2)}`;
+
+        if (registrosMostrados.length === 0) {
+            lista.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:0.9rem;">No hay registros para mostrar.</p>';
+            return;
+        }
+
+        registrosMostrados.forEach(r => {
+            if (!r || !r.fechaISO) return;
+            const fechaObj = new Date(r.fechaISO);
+            const fechaFormateada = `${fechaObj.toLocaleDateString()} ${fechaObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+            const abonoVal = r.abono || 0;
+            const montoVal = r.monto || 0;
+            const restante = Math.max(0, montoVal - abonoVal);
+
+            let badgePagoHTML = '';
+            if (r.estadoPago === 'Pagado') {
+                badgePagoHTML = `<button class="tag badge-pagado" onclick="cambiarEstadoPagoModal(${r.id})">🟢 Pagado 100%</button>`;
+            } else if (r.estadoPago === 'Abono') {
+                badgeBadgeHTML = `<button class="tag badge-abono" onclick="cambiarEstadoPagoModal(${r.id})">🟡 Abono $${abonoVal.toFixed(2)} (Resta $${restante.toFixed(2)})</button>`;
+            } else {
+                badgePagoHTML = `<button class="tag badge-pendiente" onclick="cambiarEstadoPagoModal(${r.id})">❌ Sin Pago</button>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.innerHTML = `
+                <div>
+                    <strong>${r.nombre || 'Sin Nombre'}</strong> ${r.telefono ? `<small style="color:var(--text-muted);">(${r.telefono})</small>` : ''} <br>
+                    <small style="color: var(--text-muted);">${fechaFormateada} — Total: $${montoVal.toFixed(2)}</small>
+                    <div class="tag-group">
+                        <span class="tag ${r.tipo === 'Agendado' ? 'tag-agendado' : 'tag-walkin'}">${r.tipo}</span>
+                        <button class="btn-ws" onclick="enviarReciboWhatsApp(${r.id})">💬 Recibo</button>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="tag-group" style="justify-content: flex-end; margin-bottom: 5px;">
+                        <button class="tag ${r.atendido ? 'btn-atendido' : 'btn-por-atender'}" onclick="toggleEstadoAtendido(${r.id})">
+                            ${r.atendido ? '✓ Atendido' : '⏳ Por Atender'}
+                        </button>
+                        ${badgePagoHTML}
+                    </div>
+                    <button onclick="eliminar(${r.id})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.85rem;">Eliminar</button>
+                </div>
+            `;
+            lista.appendChild(card);
+        });
+    }
+
+    // REGISTRO DEL SERVICE WORKER PARA HABILITAR PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registrado con éxito', reg))
+                .catch(err => console.log('Error al registrar Service Worker', err));
+        });
+    }
+
+    // Inicialización al cargar la página
+    inicializarFechaHora();
+    render();
+</script>
+</body>
+</html>
