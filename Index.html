@@ -109,6 +109,7 @@
         .btn-export { background: #0284c7; color: white; font-size: 0.75rem; padding: 8px 10px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; min-height: 36px; }
         .btn-backup { background: #7c3aed; color: white; font-size: 0.75rem; padding: 8px 10px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 36px; }
         .btn-restore { background: #b45309; color: white; font-size: 0.75rem; padding: 8px 10px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 36px; }
+        .btn-sync { background: #059669; color: white; font-size: 0.75rem; padding: 8px 10px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 36px; }
 
         .btn-agenda-header { background: #3b82f6; color: white; font-size: 0.8rem; padding: 8px 12px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; min-height: 36px; }
 
@@ -186,14 +187,17 @@
         .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.6rem; cursor: pointer; padding: 4px 8px; min-height: auto; }
         .modal-close:active { color: white; }
         .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; margin-top: 10px; }
-        .modal-cliente-item { padding: 10px 12px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; touch-action: manipulation; }
-        .modal-cliente-item:active { border-color: var(--accent); background: #1e293b; }
+        .modal-cliente-item { padding: 10px 12px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; transition: 0.2s; display: flex; flex-direction: column; gap: 8px; touch-action: manipulation; }
+        .modal-cliente-header-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 
         /* GALERÍA DE FOTOS MULTIPLES */
         .galeria-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 10px; }
         .galeria-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .galeria-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
         .galeria-item .btn-del-foto { position: absolute; top: 2px; right: 2px; background: rgba(220,38,38,0.85); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; min-height: auto; font-size: 0.8rem; cursor: pointer; display: flex; justify-content: center; align-items: center; padding: 0; }
+
+        .agenda-fotos-preview { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; border-top: 1px dashed var(--border); }
+        .agenda-fotos-preview img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; }
 
         .estado-db { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin: -10px 0 15px 0; }
         .estado-db.error { color: #fca5a5; }
@@ -206,9 +210,9 @@
 <body>
 
 <div class="container">
-    <!-- INPUT OCULTO PARA DISPARAR CÁMARA DESDE CUALQUIER TARJETA -->
-    <input type="file" id="inputFotoPostServicio" accept="image/*" capture="environment" style="display: none;" onchange="guardarFotoCorteDirecto(event)">
-    <!-- INPUT OCULTO PARA RESTAURAR RESPALDO JSON -->
+    <!-- INPUTS OCULTOS -->
+    <input type="file" id="inputFotoCamara" accept="image/*" capture="environment" style="display: none;" onchange="guardarFotoCorteDirecto(event)">
+    <input type="file" id="inputFotoGaleria" accept="image/*" style="display: none;" onchange="guardarFotoCorteDirecto(event)">
     <input type="file" id="inputRestaurarBackup" accept="application/json" style="display: none;" onchange="restaurarBaseDeDatosJSON(event)">
 
     <!-- LOGO Y TITULO -->
@@ -242,7 +246,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Teléfono (opcional)</label>
-                <input type="tel" id="telefono" placeholder="Ej. +584121234567">
+                <input type="tel" id="telefono" placeholder="Ej. 04121234567">
             </div>
             <div class="form-group">
                 <label>Frecuencia de Visita</label>
@@ -348,6 +352,7 @@
         <h2>
             <span>👥 Base de Datos & Respaldo</span>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn-sync" onclick="sincronizarContactosTelefono()">📱 Sincronizar Contactos</button>
                 <button class="btn-backup" onclick="descargarBaseDeDatosJSON()">💾 Descargar Copia</button>
                 <button class="btn-restore" onclick="document.getElementById('inputRestaurarBackup').click()">♻️ Restaurar Copia</button>
                 <button class="btn-export" onclick="exportarClientesCSV()">📥 Exportar CSV</button>
@@ -488,7 +493,7 @@
     let modoVista = 'semana';
     let fechaFiltroSeleccionada = null;
     let estadoPagoSeleccionadoForm = 'Pendiente';
-    let frecuenciaSeleccionadaForm = 14;
+    let frecuenciaSeleccionadaForm = 14; // Predeterminado a 2 semanas
     let idRegistroFotoActual = null;
     let clienteNombreGaleriaActual = '';
 
@@ -565,6 +570,51 @@
         document.getElementById('modalGaleriaFotos').style.display = 'none';
     }
 
+    /* SINCRONIZACIÓN CON CONTACTOS DEL TELÉFONO */
+    async function sincronizarContactosTelefono() {
+        if (!('contacts' in navigator && 'select' in navigator.contacts)) {
+            alert('La sincronización de contactos solo está soportada en navegadores móviles compatibles (ej. Chrome en Android).');
+            return;
+        }
+
+        try {
+            const props = ['name', 'tel'];
+            const opts = { multiple: true };
+            const contactos = await navigator.contacts.select(props, opts);
+
+            if (!contactos || contactos.length === 0) return;
+
+            let agregados = 0;
+            contactos.forEach(c => {
+                const nombre = c.name && c.name[0] ? c.name[0].trim() : '';
+                const telefono = c.tel && c.tel[0] ? c.tel[0].trim() : '';
+
+                if (nombre) {
+                    const existe = clientesBD.some(cli => cli.nombre.toLowerCase() === nombre.toLowerCase());
+                    if (!existe) {
+                        clientesBD.push({
+                            id: Date.now() + Math.floor(Math.random() * 1000),
+                            nombre: nombre,
+                            telefono: telefono,
+                            frecuenciaDias: 14, // Alerta predeterminada de 2 semanas
+                            fotos: []
+                        });
+                        agregados++;
+                    }
+                }
+            });
+
+            if (agregados > 0) {
+                await guardar();
+                alert(`✅ Se han sincronizado e importado ${agregados} contactos a la agenda.`);
+            } else {
+                alert('No se añadieron contactos nuevos (ya estaban registrados en la agenda).');
+            }
+        } catch (err) {
+            console.error('Error al sincronizar contactos:', err);
+        }
+    }
+
     function descargarBaseDeDatosJSON() {
         if (registros.length === 0 && clientesBD.length === 0) {
             alert('Aún no hay datos para descargar.');
@@ -626,9 +676,15 @@
         reader.readAsText(file);
     }
 
+    /* SELECCIÓN DE FOTO: CÁMARA O GALERÍA DEL TELÉFONO */
     function capturarFotoCorte(idRegistro) {
         idRegistroFotoActual = idRegistro;
-        document.getElementById('inputFotoPostServicio').click();
+        const opcion = confirm("Presiona [Aceptar] para Abrir la Galería del dispositivo.\nPresiona [Cancelar] para tomar una Foto con la Cámara.");
+        if (opcion) {
+            document.getElementById('inputFotoGaleria').click();
+        } else {
+            document.getElementById('inputFotoCamara').click();
+        }
     }
 
     function guardarFotoCorteDirecto(event) {
@@ -680,7 +736,8 @@
                 }
 
                 idRegistroFotoActual = null;
-                document.getElementById('inputFotoPostServicio').value = '';
+                document.getElementById('inputFotoCamara').value = '';
+                document.getElementById('inputFotoGaleria').value = '';
                 guardar();
             };
             img.src = e.target.result;
@@ -698,6 +755,7 @@
         document.getElementById('modalAgenda').style.display = 'none';
     }
 
+    /* FILTRO DE AGENDA CON SECCIÓN DE FOTOS DEL CLIENTE */
     function filtrarClientesModal() {
         const query = document.getElementById('buscarClienteModal').value.toLowerCase().trim();
         const contenedor = document.getElementById('listaClientesModal');
@@ -720,25 +778,39 @@
             const fotosArr = obtenerFotosCliente(c.nombre);
             const fotoCliente = fotosArr.length > 0 ? fotosArr[0] : avatarDefaultSVG;
 
+            let previewFotosHtml = '';
+            if (fotosArr.length > 0) {
+                previewFotosHtml = `<div class="agenda-fotos-preview">`;
+                fotosArr.slice(0, 5).forEach(f => {
+                    previewFotosHtml += `<img src="${f}" onclick="event.stopPropagation(); abrirGaleriaCliente('${c.nombre}')">`;
+                });
+                previewFotosHtml += `</div>`;
+            }
+
             item.innerHTML = `
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="${fotoCliente}" class="avatar-cliente" style="width:40px; height:40px;" onclick="event.stopPropagation(); abrirGaleriaCliente('${c.nombre}')">
-                    <div>
-                        <strong>${c.nombre}</strong><br>
-                        <small style="color: var(--text-muted);">${c.telefono || 'Sin teléfono'}</small>
+                <div class="modal-cliente-header-row" onclick="seleccionarClienteDesdeModal('${c.nombre.replace(/'/g, "\\'")}')">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="${fotoCliente}" class="avatar-cliente" style="width:40px; height:40px;" onclick="event.stopPropagation(); abrirGaleriaCliente('${c.nombre.replace(/'/g, "\\'")}')">
+                        <div>
+                            <strong>${c.nombre}</strong><br>
+                            <small style="color: var(--text-muted);">${c.telefono || 'Sin teléfono'}</small>
+                        </div>
                     </div>
+                    <span style="color: var(--accent); font-weight: bold; font-size: 0.8rem;">Seleccionar ➔</span>
                 </div>
-                <span style="color: var(--accent); font-weight: bold; font-size: 0.8rem;">Seleccionar ➔</span>
+                ${previewFotosHtml}
             `;
-            item.onclick = () => seleccionarClienteDesdeModal(c);
             contenedor.appendChild(item);
         });
     }
 
-    function seleccionarClienteDesdeModal(cliente) {
-        document.getElementById('nombre').value = cliente.nombre;
-        document.getElementById('telefono').value = cliente.telefono || '';
-        seleccionarFrecuenciaFormulario(cliente.frecuenciaDias || 14);
+    function seleccionarClienteDesdeModal(nombreCliente) {
+        const cliente = clientesBD.find(c => c && c.nombre && c.nombre.toLowerCase() === nombreCliente.toLowerCase());
+        if (cliente) {
+            document.getElementById('nombre').value = cliente.nombre;
+            document.getElementById('telefono').value = cliente.telefono || '';
+            seleccionarFrecuenciaFormulario(cliente.frecuenciaDias || 14);
+        }
         cerrarModalAgenda();
     }
 
@@ -817,10 +889,11 @@
         }
     }
 
+    /* REGISTRO DE CLIENTE CON ALERTA DE 2 SEMANAS PREDETERMINADA */
     function registrarCita(tipo) {
         const nombre = document.getElementById('nombre').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
-        const frecuenciaDias = frecuenciaSeleccionadaForm || 14;
+        const frecuenciaDias = frecuenciaSeleccionadaForm || 14; // Predeterminado a 2 semanas
 
         const fechaVal = document.getElementById('fechaSeleccionada').value;
         const horaVal = document.getElementById('horaSeleccionada').value;
@@ -848,7 +921,7 @@
                 id: Date.now(),
                 nombre: nombre,
                 telefono: telefono,
-                frecuenciaDias: frecuenciaDias,
+                frecuenciaDias: frecuenciaDias, // Guardado con 2 semanas por defecto
                 fotos: []
             });
         }
@@ -880,7 +953,7 @@
         document.getElementById('montoAbonado').value = '';
         inicializarFechaHora();
         seleccionarEstadoPagoFormulario('Pendiente');
-        seleccionarFrecuenciaFormulario(14);
+        seleccionarFrecuenciaFormulario(14); // Resetea el selector de frecuencia a 2 semanas por defecto
     }
 
     function cambiarEstadoPagoModal(id) {
@@ -975,8 +1048,9 @@
         abrirWhatsAppMensaje(telefonoCliente, texto);
     }
 
+    /* DATOS DE PAGO MÓVIL (VENEZUELA) */
     const DATOS_PAGO_MOVIL = {
-        cedula: '29.727.652',
+        cedula: 'V-29.727.652',
         banco: 'B.N.C. (0191)',
         telefono: '0412-4055758'
     };
@@ -1246,7 +1320,7 @@
 
             item.innerHTML = `
                 <div class="avatar-container">
-                    <img src="${fotoMostrar}" class="avatar-cliente" onclick="abrirGaleriaCliente('${c.nombre}')">
+                    <img src="${fotoMostrar}" class="avatar-cliente" onclick="abrirGaleriaCliente('${c.nombre.replace(/'/g, "\\'")}')">
                     ${cantFotos > 0 ? `<span class="badge-cant-fotos">${cantFotos}</span>` : ''}
                 </div>
                 <div class="cliente-info-box">
@@ -1261,7 +1335,7 @@
                     <div class="cliente-info-extra">
                         ${htmlStatusSeguimiento}
                         ${requiereSeguimiento ? `
-                            <button class="btn-ws" onclick="enviarSeguimientoWhatsApp('${c.nombre}', '${c.telefono || ''}', ${diasSinVenir})">
+                            <button class="btn-ws" onclick="enviarSeguimientoWhatsApp('${c.nombre.replace(/'/g, "\\'")}', '${c.telefono || ''}', ${diasSinVenir})">
                                 📱 Recordar por WhatsApp
                             </button>
                         ` : ''}
@@ -1339,7 +1413,7 @@
             card.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px;">
                     <div class="avatar-container">
-                        <img src="${fotoCard}" class="avatar-cliente" onclick="abrirGaleriaCliente('${r.nombre || 'Cliente'}')">
+                        <img src="${fotoCard}" class="avatar-cliente" onclick="abrirGaleriaCliente('${(r.nombre || 'Cliente').replace(/'/g, "\\'")}')">
                         ${cantFotos > 0 ? `<span class="badge-cant-fotos">${cantFotos}</span>` : ''}
                     </div>
                     <div>
@@ -1380,6 +1454,7 @@
             marcarEstadoDB('⚠️ No se pudo iniciar la base de datos local en este navegador.', true);
         }
         inicializarFechaHora();
+        seleccionarFrecuenciaFormulario(14); // Configura 2 semanas por defecto
         render();
     }
 
